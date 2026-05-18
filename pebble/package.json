@@ -31,11 +31,6 @@
           "file": "images/menu_icon_geocache.png"
         },
         {
-          "type": "png",
-          "name": "NO_BT",
-          "file": "images/no_bt.png"
-        },
-        {
           "type": "font",
           "name": "FONT_ROBOTO_CONDENSED_30",
           "file": "fonts/Roboto-Condensed.ttf"

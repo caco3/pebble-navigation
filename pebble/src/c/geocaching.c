@@ -13,13 +13,6 @@
 
 #define CHANGE_UNITS 1 // if to change units such as m -> km, ft -> mi
 
-#ifdef PBL_COLOR
-  #define bg GColorDukeBlue
-  #define fg GColorWhite
-#else
-  #define fg GColorWhite
-  #define bg GColorBlack
-#endif
 
 // ADDED GPath point definitions for arrow and north marker
 static const GPathInfo ARROW_POINTS =
@@ -42,8 +35,17 @@ static const GPathInfo ARROW_POINTS =
     {-10, -20},
   }
 };
+static const GPathInfo NORTH_POINTS =
+{
+  3,
+  (GPoint []) {
+    {0, -40},
+    {6, -31},
+    {-6, -31},
+  }
+};
 
-// updated to match new Android app
+// updated to match new Adroid app and added DECLINATION_KEY for pebblekit JS
 enum GeoKey {
   DISTANCE_KEY = 0x0,
   BEARING_INDEX_KEY = 0x1,
@@ -62,6 +64,7 @@ Window *window;
 // ADDED GPath definitions
 Layer *arrow_layer;
 GPath *arrow;
+GPath *north;
 GRect arrow_bounds;
 GPoint arrow_centre;
 
@@ -85,7 +88,51 @@ static uint8_t data_display = 0; // default for the bottom info bar
 static AppSync sync;
 static uint8_t sync_buffer[150];
 
+#ifdef PBL_COLOR
+
+#define COLOR_SCHEME_KEY 1
+#define DEFAULT_COLOR_SCHEME 1
+#define CUSTOM_SCHEME_KEY 10
+
+uint8_t color_mode = 0; // 0-off 1-change scheme 2-change custom
+const uint8_t NUM_SCHEMES = 10; // black/rainbow, white/rainbow, blue, red, dark green, light green, yellow, orange, pink
+uint8_t color_scheme = DEFAULT_COLOR_SCHEME;
+static char* scheme_name[] = {
+  "custom",
+  "blk/rainbow",
+  "wht/rainbow",
+  "blue",
+  "red",
+  "drk green",
+  "lgt green",
+  "yellow",
+  "orange",
+  "pink",
+};
+
+uint8_t col_back[] = {192, 192, 255, 198, 241, 196, 238, 252, 248, 243, };
+uint8_t col_arrow[] = {255, 248, 248, 203, 224, 232, 232, 250, 246, 251, };
+uint8_t col_comp[] = {255, 252, 252, 203, 225, 236, 216, 248, 244, 247, };
+uint8_t col_dist[] = {255, 204, 204, 203, 225, 236, 216, 248, 244, 247, };
+uint8_t col_line[] = {255, 195, 195, 203, 224, 232, 232, 250, 246, 251, };
+uint8_t col_time[] = {255, 227, 227, 203, 225, 236, 216, 248, 244, 247, };
+
+uint8_t change_color = 0;
+static char* color_name[] = {
+  "background",
+  "N arrow",
+  "compass",
+  "distance",
+  "line",
+  "time",
+};
+
+void config_buttons_provider1(void *context);
+void config_buttons_provider2(void *context);
+#endif
+
 void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed);
+void config_buttons_provider(void *context);
 
 char disp_buf[32];
 
@@ -184,7 +231,11 @@ static void sync_tuple_changed_callback(const uint32_t key, const Tuple* new_tup
 
 // Draw line between geocaching data and time
 void line_layer_update_callback(Layer *layer, GContext* ctx) {
-  graphics_context_set_fill_color(ctx, fg);
+#ifdef PBL_COLOR
+  graphics_context_set_fill_color(ctx, (GColor){.argb = col_line[color_scheme]});
+#else
+  graphics_context_set_fill_color(ctx, GColorWhite);
+#endif
   graphics_fill_rect(ctx, layer_get_bounds(layer), 0, GCornerNone);
 }
 
@@ -197,28 +248,69 @@ void handle_compass(CompassHeadingData heading_data){
   layer_mark_dirty(arrow_layer);
 }
 
-// arrow layer update handler
+// NEW arrow layer update handler
 void arrow_layer_update_callback(Layer *path, GContext *ctx) {
-
-  graphics_context_set_fill_color(ctx, fg);
-  graphics_context_set_stroke_color(ctx, fg);
-
+  
+#ifdef PBL_COLOR
+#else
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_context_set_stroke_color(ctx, GColorWhite);
+#endif
+  
   compass_heading = bearing + north_heading;
   if (compass_heading >= 360) {
     compass_heading = compass_heading - 360;
   }
-
+  
 // Don't rotate the arrow if we have NO GPS or NO BT in the distance box
   if (rot_arrow) {
     gpath_rotate_to(arrow, compass_heading * TRIG_MAX_ANGLE / 360);
   }
+  
+// draw outline north arrow if pebble compass is fine calibrating, solid if good
+  gpath_rotate_to(north, north_heading * TRIG_MAX_ANGLE / 360);
+  if (!gotdecl) {
+    #ifdef PBL_COLOR
+      graphics_context_set_fill_color(ctx, GColorRed);
+      gpath_draw_filled(ctx, north);
+    #else
+      gpath_draw_outline(ctx, north);
+    #endif
+  } else {
+    #ifdef PBL_COLOR
+      graphics_context_set_fill_color(ctx, (GColor){.argb = col_arrow[color_scheme]});
+    #endif
+    gpath_draw_filled(ctx, north);
+  }
 
 // draw outline arrow if pebble compass is invalid, solid if OK
   if (status == 0) {
-    gpath_draw_outline(ctx, arrow);
+    #ifdef PBL_COLOR
+      graphics_context_set_fill_color(ctx, GColorRed);
+      gpath_draw_filled(ctx, arrow);
+      graphics_context_set_fill_color(ctx, GColorWhite);
+      graphics_fill_circle(ctx, arrow_centre, 1);
+    #else
+      gpath_draw_outline(ctx, arrow);
+      graphics_fill_circle(ctx, arrow_centre, 1);
+    #endif
   } else {
-    gpath_draw_filled(ctx, arrow);
-  }
+    #ifdef PBL_COLOR
+      if (status == 1) {
+        graphics_context_set_fill_color(ctx, GColorYellow);
+      } else {
+        graphics_context_set_fill_color(ctx, (GColor){.argb = col_arrow[color_scheme]});
+      }
+      gpath_draw_filled(ctx, arrow);
+      graphics_context_set_fill_color(ctx, GColorBlack);
+      graphics_fill_circle(ctx, arrow_centre, 1);
+    #else
+      gpath_draw_filled(ctx, arrow);
+      graphics_context_set_fill_color(ctx, GColorBlack);
+      graphics_fill_circle(ctx, arrow_centre, 1);
+      graphics_context_set_fill_color(ctx, GColorWhite);
+    #endif
+    }
 }
 
 void bluetooth_connection_changed(bool connected) {
@@ -234,9 +326,15 @@ void bluetooth_connection_changed(bool connected) {
   }
   if (strncmp(text_layer_get_text(text_distance_layer), "NO", 2) != 0) {
     rot_arrow = true;
+    #ifdef PBL_COLOR
+      text_layer_set_text_color(text_distance_layer, (GColor){.argb = col_dist[color_scheme]});
+    #endif
   } else {
     rot_arrow = false;
-  }
+    #ifdef PBL_COLOR
+      text_layer_set_text_color(text_distance_layer, GColorRed);
+    #endif
+  } 
 }
 
 bool have_additional_data(){
@@ -304,12 +402,165 @@ void select_click_handler(ClickRecognizerRef recognizer, void *context) {
 
 
 
+#ifdef PBL_COLOR
+
+void color_up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  switch (change_color) {
+    case 0:
+      col_back[0]--;
+      if (col_back[0] < 192) col_back[0] = 255;
+      break;
+    case 1:
+      col_arrow[0]--;
+      if (col_arrow[0] < 192) col_arrow[0] = 255;
+      break;
+    case 2:
+      col_comp[0]--;
+      if (col_comp[0] < 192) col_comp[0] = 255;
+      break;
+    case 3:
+      col_dist[0]--;
+      if (col_dist[0] < 192) col_dist[0] = 255;
+      break;
+    case 4:
+      col_line[0]--;
+      if (col_line[0] < 192) col_line[0] = 255;
+      break;
+    case 5:
+      col_time[0]--;
+      if (col_time[0] < 192) col_time[0] = 255;
+      break;
+  }
+  window_set_background_color(window, (GColor){.argb = col_back[color_scheme]});
+  text_layer_set_text_color(text_distance_layer, (GColor){.argb = col_dist[color_scheme]});
+  text_layer_set_text_color(text_time_layer, (GColor){.argb = col_time[color_scheme]});
+  layer_mark_dirty(arrow_layer);
+}
+void color_down_click_handler(ClickRecognizerRef recognizer, void *context) {
+  char message[] = "XXXXXXXXXXXXXXXXX";
+  snprintf(message, sizeof(message), "%d", change_color);
+  APP_LOG(APP_LOG_LEVEL_INFO, message);
+
+  switch (change_color) {
+    case 0:
+      col_back[0]++;
+      if (col_back[0] == 0) col_back[0] = 192;
+      break;
+    case 1:
+      col_arrow[0]++;
+      if (col_arrow[0] == 0) col_arrow[0] = 192;
+      break;
+    case 2:
+      col_comp[0]++;
+      if (col_comp[0] == 0) col_comp[0] = 192;
+      break;
+    case 3:
+      col_dist[0]++;
+      if (col_dist[0] == 0) col_dist[0] = 192;
+      break;
+    case 4:
+      col_line[0]++;
+      if (col_line[0] == 0) col_line[0] = 192;
+      break;
+    case 5:
+      col_time[0]++;
+      if (col_time[0] == 0) col_time[0] = 192;
+      break;
+  }
+  window_set_background_color(window, (GColor){.argb = col_back[color_scheme]});
+  text_layer_set_text_color(text_distance_layer, (GColor){.argb = col_dist[color_scheme]});
+  text_layer_set_text_color(text_time_layer, (GColor){.argb = col_time[color_scheme]});
+  layer_mark_dirty(arrow_layer);
+}
+void color_select_click_handler(ClickRecognizerRef recognizer, void *context) {
+  change_color++;
+  if (change_color > 5) {
+    color_mode = 0;
+    text_layer_set_text(text_distance_layer, "NO GPS");
+    window_set_click_config_provider(window, config_buttons_provider);
+  }
+  text_layer_set_text(text_time_layer, color_name[change_color]);
+}
+  
+void scheme_up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  color_scheme--;
+  if (color_scheme == 255) color_scheme = NUM_SCHEMES - 1;
+  text_layer_set_text(text_time_layer, scheme_name[color_scheme]);
+  window_set_background_color(window, (GColor){.argb = col_back[color_scheme]});
+  text_layer_set_text_color(text_distance_layer, (GColor){.argb = col_dist[color_scheme]});
+  text_layer_set_text_color(text_time_layer, (GColor){.argb = col_time[color_scheme]});
+  layer_mark_dirty(arrow_layer);
+}
+void scheme_down_click_handler(ClickRecognizerRef recognizer, void *context) {
+  color_scheme++;
+  if (color_scheme >= NUM_SCHEMES) color_scheme = 0;
+  text_layer_set_text(text_time_layer, scheme_name[color_scheme]);
+  window_set_background_color(window, (GColor){.argb = col_back[color_scheme]});
+  text_layer_set_text_color(text_distance_layer, (GColor){.argb = col_dist[color_scheme]});
+  text_layer_set_text_color(text_time_layer, (GColor){.argb = col_time[color_scheme]});
+  layer_mark_dirty(arrow_layer);
+}
+void scheme_select_click_handler(ClickRecognizerRef recognizer, void *context) {
+  if (color_scheme != 0) {
+    color_mode = 0;
+    text_layer_set_text(text_distance_layer, "NO GPS");
+    window_set_click_config_provider(window, config_buttons_provider);
+  } else { // custom color scheme
+    change_color = 0;
+    text_layer_set_text(text_distance_layer, "custom");
+    text_layer_set_text(text_time_layer, color_name[change_color]);
+    window_set_click_config_provider(window, config_buttons_provider2);
+  }
+}
+
+void select_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+  color_mode++;
+  char message[] = "XXXXXXXXXXXXXXXXX";
+  snprintf(message, sizeof(message), "%d", color_mode);
+  APP_LOG(APP_LOG_LEVEL_INFO, message);
+  if (color_mode > 1) color_mode = 0;
+  switch (color_mode) {
+    case 0: // color select off
+      text_layer_set_text(text_distance_layer, "NO GPS");
+      window_set_click_config_provider(window, config_buttons_provider);
+      break;
+    case 1: // color scheme select
+      text_layer_set_text(text_distance_layer, "scheme");
+      text_layer_set_text(text_time_layer, scheme_name[color_scheme]);
+      window_set_click_config_provider(window, config_buttons_provider1);
+      break;
+    case 2: // custom colors select
+      text_layer_set_text(text_distance_layer, "colors");
+      text_layer_set_text(text_time_layer, color_name[change_color]);
+      window_set_click_config_provider(window, config_buttons_provider2);
+      break;
+  }
+}
+
+void config_buttons_provider1(void *context) {
+  window_single_click_subscribe(BUTTON_ID_UP, scheme_up_click_handler);
+  window_single_click_subscribe(BUTTON_ID_DOWN, scheme_down_click_handler);
+  window_single_click_subscribe(BUTTON_ID_SELECT, scheme_select_click_handler);
+  window_long_click_subscribe(BUTTON_ID_SELECT, 500, select_long_click_handler, NULL);
+}
+void config_buttons_provider2(void *context) {
+  window_single_click_subscribe(BUTTON_ID_UP, color_up_click_handler);
+  window_single_click_subscribe(BUTTON_ID_DOWN, color_down_click_handler);
+  window_single_click_subscribe(BUTTON_ID_SELECT, color_select_click_handler);
+  window_long_click_subscribe(BUTTON_ID_SELECT, 500, select_long_click_handler, NULL);
+}
+
+#endif
+
 void config_buttons_provider(void *context) {
-   window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
-   window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
-   window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
-   APP_LOG(APP_LOG_LEVEL_DEBUG, "Button Subscription Complete");
- }
+  window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
+  window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
+
+  #ifdef PBL_COLOR
+    window_long_click_subscribe(BUTTON_ID_SELECT, 500, select_long_click_handler, NULL);
+    window_single_click_subscribe(BUTTON_ID_SELECT, NULL);
+  #endif
+}
 
 void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
   static char time_text[] = "XXX XX 00:00";
@@ -332,9 +583,25 @@ void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
 }
 
 void handle_init(void) {
-  window = window_create();
 
-  window_set_background_color(window, bg);
+  #ifdef PBL_COLOR
+    color_scheme = persist_exists(COLOR_SCHEME_KEY) ? persist_read_int(COLOR_SCHEME_KEY) : DEFAULT_COLOR_SCHEME;
+    if (persist_exists(CUSTOM_SCHEME_KEY)) {
+      col_back[0] = persist_read_int(CUSTOM_SCHEME_KEY + 0);
+      col_arrow[0] = persist_read_int(CUSTOM_SCHEME_KEY + 1);
+      col_dist[0] = persist_read_int(CUSTOM_SCHEME_KEY + 2);
+      col_line[0] = persist_read_int(CUSTOM_SCHEME_KEY + 3);
+      col_time[0] = persist_read_int(CUSTOM_SCHEME_KEY + 4);
+    }
+  #endif
+
+  window = window_create();
+  #ifdef PBL_COLOR
+    window_set_background_color(window, (GColor){.argb = col_back[color_scheme]});
+  #else
+    window_set_background_color(window, GColorBlack);
+    window_set_fullscreen(window, true);
+  #endif
 
   window_stack_push(window, true);
 
@@ -346,9 +613,13 @@ void handle_init(void) {
 
   ResHandle roboto_36 = resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_36);
   text_distance_layer = text_layer_create(GRect(0, 0, 144, 40));
-  text_layer_set_text_color(text_distance_layer, fg);
-  text_layer_set_text_alignment(text_distance_layer, GTextAlignmentCenter);
   text_layer_set_background_color(text_distance_layer, GColorClear);
+  #ifdef PBL_COLOR
+    text_layer_set_text_color(text_distance_layer, (GColor){.argb = col_dist[color_scheme]});
+  #else
+    text_layer_set_text_color(text_distance_layer, GColorWhite);
+  #endif
+  text_layer_set_text_alignment(text_distance_layer, GTextAlignmentCenter);
   text_layer_set_font(text_distance_layer, fonts_load_custom_font(roboto_36));
   layer_add_child(distance_holder, text_layer_get_layer(text_distance_layer));
 
@@ -363,9 +634,13 @@ void handle_init(void) {
 
   ResHandle roboto_22 = resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_SUBSET_22);
   text_time_layer = text_layer_create(GRect(0, 2, 144, 32));
-  text_layer_set_text_color(text_time_layer, fg);
-  text_layer_set_text_alignment(text_time_layer, GTextAlignmentCenter);
   text_layer_set_background_color(text_time_layer, GColorClear);
+  #ifdef PBL_COLOR
+    text_layer_set_text_color(text_time_layer, (GColor){.argb = col_time[color_scheme]});
+  #else
+    text_layer_set_text_color(text_time_layer, GColorWhite);
+  #endif
+  text_layer_set_text_alignment(text_time_layer, GTextAlignmentCenter);
   text_layer_set_font(text_time_layer, fonts_load_custom_font(roboto_22));
   layer_add_child(date_holder, text_layer_get_layer(text_time_layer));
 
@@ -387,6 +662,8 @@ void handle_init(void) {
 // Initialize and define the paths
   arrow = gpath_create(&ARROW_POINTS);
   gpath_move_to(arrow, arrow_centre);
+  north = gpath_create(&NORTH_POINTS);
+  gpath_move_to(north, arrow_centre);
 
   Tuplet initial_values[] = {
     TupletCString(DISTANCE_KEY, "NO GPS"),
@@ -397,7 +674,7 @@ void handle_init(void) {
     TupletCString(GC_CODE_KEY, ""),
     TupletCString(GC_SIZE_KEY, ""),
     TupletInteger(AZIMUTH_KEY, 0),
-    TupletCString(DECLINATION_KEY, "D"),
+    TupletInteger(DECLINATION_KEY, 0),
     TupletInteger(UNITS_KEY, 0),
   };
 
@@ -423,6 +700,16 @@ void handle_init(void) {
 }
 
 void handle_deinit(void) {
+
+#ifdef PBL_COLOR
+  persist_write_int(COLOR_SCHEME_KEY, color_scheme);
+  persist_write_int(CUSTOM_SCHEME_KEY + 0, col_back[0]);
+  persist_write_int(CUSTOM_SCHEME_KEY + 1, col_arrow[0]);
+  persist_write_int(CUSTOM_SCHEME_KEY + 2, col_dist[0]);
+  persist_write_int(CUSTOM_SCHEME_KEY + 3, col_line[0]);
+  persist_write_int(CUSTOM_SCHEME_KEY + 4, col_time[0]);
+#endif
+  
 // added unsubscribes
   bluetooth_connection_service_unsubscribe();
   tick_timer_service_unsubscribe();
@@ -433,6 +720,7 @@ void handle_deinit(void) {
   layer_destroy(line_layer);
   text_layer_destroy(text_distance_layer);
   gpath_destroy(arrow);
+  gpath_destroy(north);
   layer_destroy(arrow_layer);
   window_destroy(window);
 
