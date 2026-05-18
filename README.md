@@ -1,9 +1,10 @@
-pebble-navigation
-===========
+# pebble-navigation
 
 Application that connect Pebble Watch and Navigational (Mostly GC) apps
 
 Edited for imperial and metric units.
+
+![Screenshot](graphics/pebble-screenshot-2026-05-19.png)
 
 Get it in the Pebble Store: xxx
 
