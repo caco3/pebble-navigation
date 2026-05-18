@@ -42,15 +42,6 @@ static const GPathInfo ARROW_POINTS =
     {-10, -20},
   }
 };
-static const GPathInfo NORTH_POINTS =
-{
-  3,
-  (GPoint []) {
-    {0, -40},
-    {6, -31},
-    {-6, -31},
-  }
-};
 
 // updated to match new Android app
 enum GeoKey {
