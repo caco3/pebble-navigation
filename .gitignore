@@ -1,5 +1,6 @@
 *.DS_Store
 ._*
+.lock-*
 /build/
 pebble/build
 node_modules
