@@ -1,4 +1,4 @@
-package com.webmajstr.pebble_gc;
+package com.caco3.pebble_gc;
 
 import org.junit.Test;
 

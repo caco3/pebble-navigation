@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.webmajstr.pebble_gc">
+    package="com.caco3.pebble_gc">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -18,7 +18,7 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name="com.webmajstr.pebble_gc.MainActivity"
+            android:name="com.caco3.pebble_gc.MainActivity"
             android:label="@string/app_name"
             android:exported="true">
             <intent-filter>
@@ -28,12 +28,12 @@
         </activity>
 
         <activity
-            android:name="com.webmajstr.pebble_gc.NavigationActivity"
+            android:name="com.caco3.pebble_gc.NavigationActivity"
             android:label="@string/app_name"
             android:launchMode="singleTop"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.webmajstr.pebble_gc.NAVIGATE_TO" />
+                <action android:name="com.caco3.pebble_gc.NAVIGATE_TO" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
