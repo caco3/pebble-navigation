@@ -63,14 +63,33 @@ jobs:
         ./gradlew assembleRelease
 
     - name: Sign release APK
-      if: github.ref == 'refs/heads/main'
-      uses: bhardwajrahul/sign-release-apk@v1
-      with:
-        releaseDirectory: android/app/build/outputs/apk/release
-        signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-        alias: ${{ secrets.SIGNING_KEY_ALIAS }}
-        keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-        keyPassword: ${{ secrets.KEY_PASSWORD }}
+      if: github.ref == 'refs/heads/main' && secrets.SIGNING_KEY != ''
+      run: |
+        cd android
+        # Decode keystore
+        echo "${{ secrets.SIGNING_KEY }}" | base64 -d > app/keystore.jks
+        
+        # Find the build tools directory
+        BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+        
+        # Rename unsigned APK for processing
+        mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/app-release-unsigned.apk
+        
+        # Align the APK
+        $BUILD_TOOLS_DIR/zipalign -v -p 4 app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/app-release-aligned.apk
+        
+        # Sign the APK
+        $BUILD_TOOLS_DIR/apksigner sign --ks app/keystore.jks \
+          --ks-key-alias "${{ secrets.SIGNING_KEY_ALIAS }}" \
+          --ks-pass pass:"${{ secrets.KEY_STORE_PASSWORD }}" \
+          --key-pass pass:"${{ secrets.KEY_PASSWORD }}" \
+          --out app/build/outputs/apk/release/app-release.apk \
+          app/build/outputs/apk/release/app-release-aligned.apk
+        
+        # Clean up
+        rm app/keystore.jks
+        rm app/build/outputs/apk/release/app-release-unsigned.apk
+        rm app/build/outputs/apk/release/app-release-aligned.apk
 
     - name: Upload release APK
       if: github.ref == 'refs/heads/main'
