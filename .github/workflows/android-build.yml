@@ -63,7 +63,7 @@ jobs:
         ./gradlew assembleRelease
 
     - name: Sign release APK
-      if: github.ref == 'refs/heads/main' && secrets.SIGNING_KEY_ALIAS != ''
+      if: github.ref == 'refs/heads/main'
       uses: r0adkll/sign-android-release@v1
       with:
         releaseDirectory: android/app/build/outputs/apk/release
