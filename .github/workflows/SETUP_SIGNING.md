@@ -6,10 +6,9 @@ This document explains how to set up APK signing for automated builds in GitHub 
 
 To enable signed release APK builds, you need to add the following secrets to your GitHub repository:
 
-1. **SIGNING_KEY**: Base64 encoded keystore file
-2. **SIGNING_KEY_ALIAS**: Alias of the signing key in the keystore
-3. **KEY_STORE_PASSWORD**: Password for the keystore
-4. **KEY_PASSWORD**: Password for the signing key
+1. **KEYSTORE_BASE64**: Base64 encoded keystore file
+2. **KEY_ALIAS**: Alias of the signing key in the keystore
+3. **KEYSTORE_PASSWORD**: Password for the keystore
 
 ## How to Generate and Encode the Keystore
 
@@ -31,10 +30,9 @@ base64 -i pebble-navigation.keystore | tr -d '\n'
 2. Navigate to Settings → Secrets and variables → Actions
 3. Click "New repository secret"
 4. Add each of the required secrets:
-   - `SIGNING_KEY`: Paste the base64 encoded keystore
-   - `SIGNING_KEY_ALIAS`: Your keystore alias (e.g., "pebble-nav-key")
-   - `KEY_STORE_PASSWORD`: Your keystore password
-   - `KEY_PASSWORD`: Your key password
+   - `KEYSTORE_BASE64`: Paste the base64 encoded keystore
+   - `KEY_ALIAS`: Your keystore alias (e.g., "pebble-nav-key")
+   - `KEYSTORE_PASSWORD`: Your keystore password
 
 ## How the Signing Works
 

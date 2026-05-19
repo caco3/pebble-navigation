@@ -17,11 +17,11 @@ android {
 
     signingConfigs {
         release {
-            if (project.hasProperty('SIGNING_KEY_ALIAS')) {
-                storeFile file(System.getenv('SIGNING_KEY_FILE') ?: 'keystore.jks')
-                storePassword System.getenv('KEY_STORE_PASSWORD')
-                keyAlias System.getenv('SIGNING_KEY_ALIAS')
-                keyPassword System.getenv('KEY_PASSWORD')
+            if (System.getenv('KEYSTORE_BASE64')) {
+                storeFile file('release.keystore')
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEYSTORE_PASSWORD')
             }
         }
     }
@@ -30,6 +30,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (System.getenv('KEYSTORE_BASE64')) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     compileOptions {
