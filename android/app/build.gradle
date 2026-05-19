@@ -1,12 +1,12 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace 'com.caco3.pebble_gc'
+    namespace 'com.webmajstr.pebble_gc'
     compileSdkVersion 34
     buildToolsVersion "34.0.0"
 
     defaultConfig {
-        applicationId "com.caco3.pebble_gc"
+        applicationId "com.webmajstr.pebble_gc"
         minSdkVersion 33
         targetSdkVersion 34
         versionCode 4

@@ -1,4 +1,4 @@
-package com.caco3.pebble_gc;
+package com.webmajstr.pebble_gc;
 
 import android.Manifest;
 import android.app.Activity;

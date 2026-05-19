@@ -1,4 +1,4 @@
-package com.caco3.pebble_gc;
+package com.webmajstr.pebble_gc;
 
 import java.util.Locale;
 import java.util.UUID;

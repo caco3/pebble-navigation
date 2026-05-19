@@ -1,4 +1,4 @@
-package com.caco3.pebble_gc;
+package com.webmajstr.pebble_gc;
 
 public enum Units {
     IMPERIAL,

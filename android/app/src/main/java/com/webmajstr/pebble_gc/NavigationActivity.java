@@ -1,4 +1,4 @@
-package com.caco3.pebble_gc;
+package com.webmajstr.pebble_gc;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -39,7 +39,7 @@ public class NavigationActivity extends Activity {
          */
         assert intent != null;
         switch (Objects.requireNonNull(intent.getAction())) {
-            case "com.caco3.pebble_gc.NAVIGATE_TO":
+            case "com.webmajstr.pebble_gc.NAVIGATE_TO":
 
                 gc_latitude = intent.getDoubleExtra("latitude", 0.0);
                 gc_longitude = intent.getDoubleExtra("longitude", 0.0);
