@@ -64,14 +64,13 @@ jobs:
 
     - name: Sign release APK
       if: github.ref == 'refs/heads/main'
-      uses: r0adkll/sign-android-release@v1
+      uses: bhardwajrahul/sign-release-apk@v1
       with:
         releaseDirectory: android/app/build/outputs/apk/release
         signingKeyBase64: ${{ secrets.SIGNING_KEY }}
         alias: ${{ secrets.SIGNING_KEY_ALIAS }}
         keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
         keyPassword: ${{ secrets.KEY_PASSWORD }}
-        buildToolsVersion: 34.0.0
 
     - name: Upload release APK
       if: github.ref == 'refs/heads/main'
