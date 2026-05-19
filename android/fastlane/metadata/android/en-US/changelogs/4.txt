@@ -1,0 +1,1 @@
+Version 4.1: Restored package name com.webmajstr.pebble_gc for c:geo compatibility. Updated to target Android SDK 34.

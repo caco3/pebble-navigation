@@ -1,0 +1,10 @@
+Pebble Navigation is a companion Android app that connects your Pebble smartwatch to navigation and geocaching applications on your phone.
+
+It acts as a bridge between apps that support the standard navigation/geocaching intents (such as c:geo) and your Pebble watch, displaying bearing, distance, and target information directly on your wrist.
+
+Features:
+- Displays navigation data (bearing, distance, target name) on Pebble smartwatch
+- Supports geocaching apps (e.g. c:geo) via standard Android intents
+- Works with any app sending geo: URIs or the NAVIGATE_TO intent
+- Foreground service for reliable background operation
+- Supports compass-style and arrow navigation display on the watch
