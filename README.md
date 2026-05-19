@@ -15,4 +15,4 @@ Get it in the Pebble Store: xxx
 
 # Pebble Store
 - Original version (non-functional with 2026 companion app): https://apps.repebble.com/navigation-geocaching-for-pebble_52cb3d92b13828a9e4000090
-- New version: xxx
+- New version: https://apps.repebble.com/6a97d5588db846359d7fb84b
