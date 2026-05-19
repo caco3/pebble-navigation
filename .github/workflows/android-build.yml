@@ -66,17 +66,28 @@ jobs:
       if: github.ref == 'refs/heads/main'
       run: |
         cd android
+        # List generated APKs to debug
+        echo "Available APK files:"
+        find app/build/outputs/apk/release/ -name "*.apk" -type f
+        
         # Decode keystore
         echo "${{ secrets.SIGNING_KEY }}" | base64 -d > app/keystore.jks
         
         # Find the build tools directory
         BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
         
-        # Rename unsigned APK for processing
-        mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/app-release-unsigned.apk
+        # Find the actual APK file
+        APK_FILE=$(find app/build/outputs/apk/release/ -name "*.apk" -type f | head -1)
+        
+        if [ -z "$APK_FILE" ]; then
+          echo "No APK file found to sign!"
+          exit 1
+        fi
+        
+        echo "Signing APK: $APK_FILE"
         
         # Align the APK
-        $BUILD_TOOLS_DIR/zipalign -v -p 4 app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/app-release-aligned.apk
+        $BUILD_TOOLS_DIR/zipalign -v -p 4 "$APK_FILE" app/build/outputs/apk/release/app-release-aligned.apk
         
         # Sign the APK
         $BUILD_TOOLS_DIR/apksigner sign --ks app/keystore.jks \
@@ -88,7 +99,6 @@ jobs:
         
         # Clean up
         rm app/keystore.jks
-        rm app/build/outputs/apk/release/app-release-unsigned.apk
         rm app/build/outputs/apk/release/app-release-aligned.apk
 
     - name: Upload release APK
